@@ -147,7 +147,7 @@ def assign_license(access_token, userPrincipalName, license_sku_id):
         "removeLicenses": []
     }
     temp = requests.post(url,headers=headers,json=body)
-    print(temp)
+    print(temp.json())
     
 def patch_user(access_token, userPrincipalName, **kwargs):
     """Issues a PATCH request to update user properties in Azure AD
@@ -173,6 +173,11 @@ def patch_user(access_token, userPrincipalName, **kwargs):
     print(temp)
 
 def gen_password():
+    """Generates a random password with w format of UpperLowerLower#####
+
+    Returns:
+        string: The randomely generated password
+    """
     capital_letter = random.choice(string.ascii_uppercase)
     lowercase_letters = random.choices(string.ascii_lowercase, k=2)
     numbers = random.choices(string.digits, k=5)    
@@ -206,3 +211,51 @@ def create_user(access_token, userPrincipalName, **kwargs):
     #Issue HTTP PATCH request to update user info
     temp = requests.post(url,headers=headers,json=body)
     print(temp.content)
+
+def build_license_dict(json_data):
+    sku_dict = {}    
+    data = json.loads(json_data)
+    subscribed_skus = data.get("value")
+        
+    for sku in subscribed_skus:
+        sku_part_number = sku["skuPartNumber"]
+        sku_id = sku.get("skuId")
+            
+        if sku_part_number and sku_id:
+            sku_dict[sku_part_number] = sku_id
+        
+    return sku_dict
+
+def get_subscribed_sku_ids(access_token):
+    url = 'https://graph.microsoft.com/v1.0/subscribedSkus?$select=skuPartNumber,skuId'
+    headers = {
+        'Authorization': access_token
+    }
+
+    graph_result = requests.get(url=url, headers=headers)
+    data = graph_result.json()
+
+    return data
+
+
+def get_license_report(access_token):
+    url = 'https://graph.microsoft.com/v1.0/subscribedSkus'
+    headers = {
+        'Authorization': access_token
+    }
+    
+    response_data = []
+    
+    # Make a GET request to the provided url, passing the access token in a header
+    graph_result = requests.get(url=url, headers=headers)
+    data = graph_result.json()
+    response_data.extend(data["value"])
+
+    paginate_json(data,headers,response_data)
+
+    #convert table to pandas dataframe and drop unnecessary odata column
+    df = pd.json_normalize(response_data)
+    #df.drop('manager.@odata.type', axis=1)
+    print(df)
+
+    return df
