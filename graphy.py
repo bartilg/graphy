@@ -1,6 +1,8 @@
 import requests
 import msal
 import json
+import random
+import string
 import pandas as pd
 
 def get_access_token(client_id, authority, client_secret, scope):
@@ -169,3 +171,38 @@ def patch_user(access_token, userPrincipalName, **kwargs):
     temp = requests.patch(url,headers=headers,json=body)
     print(userPrincipalName)
     print(temp)
+
+def gen_password():
+    capital_letter = random.choice(string.ascii_uppercase)
+    lowercase_letters = random.choices(string.ascii_lowercase, k=2)
+    numbers = random.choices(string.digits, k=5)    
+    formatted_string = f"{capital_letter}{''.join(lowercase_letters)}{''.join(numbers)}"
+    return formatted_string
+
+def create_user(access_token, userPrincipalName, **kwargs):
+    #MS Graph REST API url
+    url = 'https://graph.microsoft.com/v1.0/users/'
+    #Headers for API call (access token)
+    headers = {
+        'Authorization': access_token
+    }
+    #init request body from kwargs key value pairs
+    body = {}
+
+    #default values for mandatory fields
+    body['accountEnabled'] = 'true'
+    body['userPrincipalName'] = userPrincipalName
+    body['mailNickname'] = userPrincipalName.split('@')[0]
+    body['displayName'] = 'PLACEHOLDERNAME'
+    my_pass = gen_password()
+    body['passwordProfile'] = {
+        "forceChangePasswordNextSignIn": True,
+        "password": my_pass
+    }
+    
+    #assign values from args
+    for key, value in kwargs.items():
+        body[key] = value
+    #Issue HTTP PATCH request to update user info
+    temp = requests.post(url,headers=headers,json=body)
+    print(temp.content)
