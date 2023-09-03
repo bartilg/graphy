@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("app/README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
@@ -8,10 +8,11 @@ setup(
     version="0.1.0",
     author="Bart Ilg",
     description="Query MS Graph via HTTP",
+    package_dir={"": "app"},
+    packages=find_packages(where="app"),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/bartilg/graphy",
-    packages=find_packages(),
+    url="https://github.com/bartilg/graphy",   
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
