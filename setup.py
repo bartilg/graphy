@@ -8,7 +8,7 @@ setup(
     version="0.1.0",
     author="Bart Ilg",
     description="Query MS Graph via HTTP",
-    package_dir={"graphy": "graphy"},
+    package_dir={"graphy": ""},
     packages=find_packages(exclude=('tests')),
     long_description=long_description,
     long_description_content_type="text/markdown",
