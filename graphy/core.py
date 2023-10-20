@@ -73,6 +73,46 @@ def get_user_table(access_token):
 
     return df
 
+def get_users(access_token, odata_query=''):
+    """Issues a GET request to pull a list of users from Microsoft 365
+    
+    Args:
+        access_token (string): access token for the MS Graph API
+        odata_query (str, optional): odata query to apply to the request. Defaults to '' for .
+    """
+    #MS Graph REST API url
+    url = 'https://graph.microsoft.com/v1.0/users/' + odata_query
+    #Headers for API call (access token)
+    headers = {
+        'Authorization': access_token
+    }
+    temp = requests.patch(url,headers=headers)
+    print(temp)
+
+    
+def patch_user(access_token, userPrincipalName, **kwargs):
+    """Issues a PATCH request to update user properties in Azure AD
+    For Valid PATCH arguments check API Reference: https://learn.microsoft.com/en-us/graph/api/user-update?view=graph-rest-1.0&tabs=http
+
+    Args:
+        access_token (string): access token for the MS Graph API
+        userPrincipalName (string): UPN for the user to be patched
+    """
+    #MS Graph REST API url
+    url = 'https://graph.microsoft.com/v1.0/users/' + userPrincipalName
+    #Headers for API call (access token)
+    headers = {
+        'Authorization': access_token
+    }    
+    #init request body from kwargs key value pairs
+    body = {}
+    for key, value in kwargs.items():
+        body[key] = value
+    #Issue HTTP PATCH request to update user info
+    temp = requests.patch(url,headers=headers,json=body)
+    print(userPrincipalName)
+    print(temp)
+
 def get_ms_id_dict(df):
     """Constructs a dictionary where users employeeIds are the keys and their ids are the values
 
@@ -139,28 +179,7 @@ def assign_license(access_token, userPrincipalName, license_sku_id):
     temp = requests.post(url,headers=headers,json=body)
     print(temp.json())
     
-def patch_user(access_token, userPrincipalName, **kwargs):
-    """Issues a PATCH request to update user properties in Azure AD
-    For Valid PATCH arguments check API Reference: https://learn.microsoft.com/en-us/graph/api/user-update?view=graph-rest-1.0&tabs=http
 
-    Args:
-        access_token (string): access token for the MS Graph API
-        userPrincipalName (string): UPN for the user to be patched
-    """
-    #MS Graph REST API url
-    url = 'https://graph.microsoft.com/v1.0/users/' + userPrincipalName
-    #Headers for API call (access token)
-    headers = {
-        'Authorization': access_token
-    }    
-    #init request body from kwargs key value pairs
-    body = {}
-    for key, value in kwargs.items():
-        body[key] = value
-    #Issue HTTP PATCH request to update user info
-    temp = requests.patch(url,headers=headers,json=body)
-    print(userPrincipalName)
-    print(temp)
 
 def create_user(access_token, userPrincipalName, **kwargs):
     #MS Graph REST API url
@@ -173,10 +192,15 @@ def create_user(access_token, userPrincipalName, **kwargs):
     body = {}
 
     #default values for mandatory fields
+    #enable account by default
     body['accountEnabled'] = 'true'
+    #UPN is mandatory and must be passed in
     body['userPrincipalName'] = userPrincipalName
+    #by default, use the prefix of the UPN as the mailNickname
     body['mailNickname'] = userPrincipalName.split('@')[0]
-    body['displayName'] = 'PLACEHOLDERNAME'
+    #By Default, displayName is set to the UPN Prefix
+    body['displayName'] = userPrincipalName.split('@')[0]
+    #generate a password if it isn't specified
     my_pass = gen_password()
     body['passwordProfile'] = {
         "forceChangePasswordNextSignIn": True,
@@ -185,6 +209,9 @@ def create_user(access_token, userPrincipalName, **kwargs):
     
     #assign values from args
     for key, value in kwargs.items():
+        passProfKeys = ['forceChangePasswordNextSignIn','forceChangePasswordNextSignInWithMfa','password']
+        if key in passProfKeys:
+            body['passwordProfile'][key] = value
         body[key] = value
     #Issue HTTP PATCH request to update user info
     temp = requests.post(url,headers=headers,json=body)
